@@ -10,6 +10,7 @@ use App\Models\Admin;
 class AdminController extends BaseController
 {
     protected $db;
+    protected $helpers = ['url', 'form', 'CIFunctions'];
 
     public function __construct()
     {
@@ -26,7 +27,7 @@ class AdminController extends BaseController
         return view('back/pages/admin/auth/forgot-password', ['pageTitle' => 'Admin Forgot Password']);
     }
 
-    public function forgotPasswordHandler()
+    public function loginHandler()
     {
         $validator = \Config\Services::validation();
 
@@ -88,8 +89,42 @@ class AdminController extends BaseController
         return $this->response->setJSON($response);
     }
 
+    public function forgotPasswordHandler() 
+    {
+        $validator = \Config\Services::validation();
+
+        $validator->setRules([
+            'email' => 'required|valid_email'
+        ], [
+            'email' => [
+                'required' => 'Email is required',
+                'valid_email' => 'Invalid email format'
+            ]
+        ]);
+
+        if(!$validator->withRequest($this->request)->run()) {
+            $response = ['status' => 'error', 'message' => $validator->getErrors()];
+        } else {
+            $adminModel = new Admin();
+
+            if($adminModel->isEmailExist($this->request->getPost('email'))) {
+
+            } else {
+                $response = ['status' => 'error', 'message' => ['email' => 'Email is not exists in system']];
+            }
+        }
+
+        return $this->response->setJSON($response);
+    }
+
+    public function logout() 
+    {
+        CIAuth::forgetAdmin();
+        return redirect()->route('admin.login');
+    }
+
     public function dashboard()
     {
-        return view('back/pages/admin/home', ['pageTitle' => 'Admin Dashboard']);
+        return view('back/pages/admin/home', ['pageTitle' => 'Admin Dashboard', 'header' => 'Dashboard']);
     }
 }

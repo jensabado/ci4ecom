@@ -56,7 +56,7 @@ $(document).ready(function() {
 
     $.ajax({
       type: 'POST',
-      url: '<?= route_to('admin.forgot-password-handler'); ?>',
+      url: '<?= route_to('admin.login-handler'); ?>',
       data: form,
       processData: false,
       contentType: false,
