@@ -30,4 +30,12 @@ class Admin extends Model
 
         return $query > 0;
     }
+
+    public function getDataByEmail($email)
+    {
+        return $this->table('admins')
+            ->where('email', $email)
+            ->where('is_deleted', 'no')
+            ->get()->getRowArray();
+    }
 }

@@ -6,11 +6,13 @@ use App\Controllers\BaseController;
 use App\Libraries\CIAuth;
 use App\Libraries\Hash;
 use App\Models\Admin;
+use App\Models\PasswordResetToken;
+use Carbon\Carbon;
 
 class AdminController extends BaseController
 {
     protected $db;
-    protected $helpers = ['url', 'form', 'CIFunctions'];
+    protected $helpers = ['url', 'form', 'CIFunctions', 'CIMail'];
 
     public function __construct()
     {
@@ -89,26 +91,68 @@ class AdminController extends BaseController
         return $this->response->setJSON($response);
     }
 
-    public function forgotPasswordHandler() 
+    public function forgotPasswordHandler()
     {
         $validator = \Config\Services::validation();
 
         $validator->setRules([
-            'email' => 'required|valid_email'
+            'email' => 'required|valid_email',
         ], [
             'email' => [
                 'required' => 'Email is required',
-                'valid_email' => 'Invalid email format'
-            ]
+                'valid_email' => 'Invalid email format',
+            ],
         ]);
 
-        if(!$validator->withRequest($this->request)->run()) {
+        if (!$validator->withRequest($this->request)->run()) {
             $response = ['status' => 'error', 'message' => $validator->getErrors()];
         } else {
             $adminModel = new Admin();
 
-            if($adminModel->isEmailExist($this->request->getPost('email'))) {
+            if ($adminModel->isEmailExist($this->request->getPost('email'))) {
+                // get admin details
+                $admin_data = $adminModel->getDataByEmail($this->request->getPost('email'));
 
+                // generate token
+                $token = bin2hex(openssl_random_pseudo_bytes(65));
+
+                $passwordResetTokenModel = new PasswordResetToken();
+
+                if ($passwordResetTokenModel->isOldTokenExist($this->request->getPost('email'), 'admin')) {
+                    $passwordResetTokenModel->where('email', $this->request->getPost('email'))
+                        ->where('type', 'admin')
+                        ->set(['token' => $token, 'created_at' => Carbon::now()])
+                        ->update();
+                } else {
+                    $passwordResetTokenModel->insert([
+                        'email' => $this->request->getPost('email'),
+                        'token' => $token,
+                        'type' => 'admin',
+                    ]);
+                }
+
+                $actionLink = base_url(route_to('admin.reset-password', $token));
+
+                $mail_data = array(
+                    'actionLink' => $actionLink,
+                    'admin_data' => $admin_data,
+                );
+
+                $view = \Config\Services::renderer();
+                $mail_body = $view->setVar('mail_data', $mail_data)->render('email-templates/forgot-password-template');
+
+                $mailConfig = array(
+                    'mail_from_email' => env('EMAIL_FROM_ADDRESS'),
+                    'mail_from_name' => env('EMAIL_FROM_NAME'),
+                    'mail_recipient_email' => $admin_data['email'],
+                    'mail_recipient_name' => $admin_data['name'],
+                    'mail_subject' => 'Reset Password',
+                    'mail_body' => $mail_body
+                );
+
+                if(sendEmail($mailConfig)) {
+                    $response = ['status' => 'success', 'message' => 'We have e-mailed your password link'];
+                }
             } else {
                 $response = ['status' => 'error', 'message' => ['email' => 'Email is not exists in system']];
             }
@@ -117,7 +161,7 @@ class AdminController extends BaseController
         return $this->response->setJSON($response);
     }
 
-    public function logout() 
+    public function logout()
     {
         CIAuth::forgetAdmin();
         return redirect()->route('admin.login');

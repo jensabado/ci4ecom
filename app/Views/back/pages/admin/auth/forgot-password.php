@@ -5,6 +5,7 @@
   <div class="login-title">
     <h2 class="text-center text-primary">Forgot Password</h2>
   </div>
+  <div class="alert-div"></div>
   <h6 class="mb-20">
     Enter your email address to reset your password
   </h6>
@@ -71,7 +72,12 @@ $(document).ready(function() {
         $('.form-field').removeClass('border-danger');
 
         if (res.status === 'success') {
-          // window.location.href = '<?= route_to('admin.home') ?>';
+          $('.alert-div').append(`<div class="alert alert-success alert-dismissible fade show" role="alert">
+            <strong>${res.message}</strong>
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>`);
         } else if (res.status === 'error') {
           for (const [field, errorMessage] of Object.entries(res.message)) {
             $(`#${field}_error`).css({
@@ -82,19 +88,16 @@ $(document).ready(function() {
             $(`#${field}`).addClass('border-danger');
           }
         } else {
-          Swal.fire({
-            icon: 'error',
-            title: 'Failed!',
-            text: 'Something went wrong.',
-            iconColor: '#1b00ff',
-            confirmButtonColor: '#1b00ff',
-            showConfirmButton: false,
-            timer: 5000,
-            timerProgressBar: true,
-            color: '#000',
-            background: '#fff',
-          });
+          $('.alert-div').append(`<div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <strong>Something went wrong</strong>
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>`);
         }
+      },
+      error: function(xhr, status, error) {
+        console.error(xhr.responseText);
       }
     })
   })

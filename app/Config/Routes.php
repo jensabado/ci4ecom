@@ -19,5 +19,6 @@ $routes->group('admin', ['prefix' => 'admin:auth'], function($routes) {
     $routes->post('login-handler', 'AdminController::loginHandler', ['as' => 'admin.login-handler']);
     $routes->get('forgot-password', 'AdminController::forgotPassword', ['as' => 'admin.forgot-password']);
     $routes->post('forgot-password-handler', 'AdminController::forgotPasswordHandler', ['as' => 'admin.forgot-password-handler']);
+    $routes->get('reset-password/(:any)','AdminController::resetPassword', ['as' => 'admin.reset-password']);
   });
 });
